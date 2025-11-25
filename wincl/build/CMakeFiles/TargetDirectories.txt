@@ -1,0 +1,3 @@
+C:/Users/ahuao/Desktop/wincl/build/CMakeFiles/ActiveWindowMonitor.dir
+C:/Users/ahuao/Desktop/wincl/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/ahuao/Desktop/wincl/build/CMakeFiles/ZERO_CHECK.dir
