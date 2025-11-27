@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36310.24 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Peeping", "Peeping.csproj", "{BC105AA4-D6D4-4ED4-9A9B-1D8955E80FDE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BC105AA4-D6D4-4ED4-9A9B-1D8955E80FDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC105AA4-D6D4-4ED4-9A9B-1D8955E80FDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC105AA4-D6D4-4ED4-9A9B-1D8955E80FDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC105AA4-D6D4-4ED4-9A9B-1D8955E80FDE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F3EAEFA4-A057-4B3B-A045-17F54C18C6E7}
+	EndGlobalSection
+EndGlobal
