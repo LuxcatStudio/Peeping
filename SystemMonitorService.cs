@@ -1,6 +1,7 @@
-﻿using ActivityMonitor.Models;
+using ActivityMonitor.Models;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace ActivityMonitor.Services
 {
@@ -33,14 +34,29 @@ namespace ActivityMonitor.Services
                     return "未知应用";
 
                 Process process = Process.GetProcessById((int)processId);
-                return string.IsNullOrEmpty(process.MainWindowTitle)
+                string appName = string.IsNullOrEmpty(process.MainWindowTitle)
                     ? process.ProcessName
                     : $"{process.ProcessName} - {process.MainWindowTitle}";
+                
+                return ExtractMainProcess(appName);
             }
             catch
             {
                 return "未知应用";
             }
+        }
+        
+        private string ExtractMainProcess(string fullName)
+        {
+            if (string.IsNullOrEmpty(fullName))
+                return fullName;
+            var match = Regex.Match(fullName, @"^([^\s\-]+)");
+            
+            if (match.Success)
+            {
+                return match.Value.Trim();
+            }
+            return fullName;
         }
 
         public double GetCpuUsage()
