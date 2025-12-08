@@ -32,10 +32,9 @@ jobs:
       id: version
       run: |
         $majorMinor = "1.0" 
-        $date = (Get-Date).ToString("yyyy.MM.dd")
+        $date = (Get-Date).ToString("yyyyMMdd")
         $runNumber = $Env:GITHUB_RUN_NUMBER.PadLeft(4, '0')
-        $shortSha = $Env:GITHUB_SHA.Substring(0, 7)
-        $version = "$majorMinor.$date.$runNumber+$shortSha"
+        $version = "$majorMinor.$date.$runNumber-$env:GITHUB_SHA"
         echo "BUILD_VERSION=$version" >> $env:GITHUB_OUTPUT
         echo "Calculated version: $version"
 
