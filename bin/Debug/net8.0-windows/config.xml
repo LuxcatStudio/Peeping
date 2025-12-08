@@ -1,7 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<configuration>
-	<appSettings>
-		<add key="ApiUrl" value="http://localhost:3000/api/status" />
-	</appSettings>
-</configuration>	
-
