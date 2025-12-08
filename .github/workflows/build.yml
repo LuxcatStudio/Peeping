@@ -43,13 +43,14 @@ jobs:
 
     - name: 发布独立应用
       run: |
-        dotnet publish ${{ env.PROJECT_NAME }} `
+        dotnet publish `
           --configuration ${{ env.CONFIGURATION }} `
           --runtime ${{ env.RUNTIME }} `
           --self-contained true `
           --output ./publish `
-          -p:PublishSingleFile=true ` 
-          -p:Version=${{ steps.version.outputs.BUILD_VERSION }}
+          -p:PublishSingleFile=true `
+          -p:Version="${{ steps.version.outputs.BUILD_VERSION }}" `
+          ${{ env.PROJECT_NAME }}
 
     - name: 列出发布目录内容 (调试用)
       run: dir .\publish\ -Recurse | Select-Object Name, Length | Format-Table -AutoSize
