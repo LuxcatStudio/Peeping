@@ -8,7 +8,7 @@ on:
     branches: [ "main", "master" ]
 
 env:
-  PROJECT_NAME: '你的项目名称.csproj'
+  PROJECT_NAME: 'Peeping.csproj'
   CONFIGURATION: 'Release'
   RUNTIME: 'win-x64' 
   DOTNET_VERSION: '8.0.x' 
