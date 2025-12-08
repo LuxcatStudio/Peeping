@@ -1,0 +1,93 @@
+name: Build and Release WPF Application
+
+on:
+  push:
+    branches: [ "main", "master" ] 
+    tags: [ 'v*' ] 
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  PROJECT_NAME: '你的项目名称.csproj'
+  CONFIGURATION: 'Release'
+  RUNTIME: 'win-x64' 
+  DOTNET_VERSION: '8.0.x' 
+
+jobs:
+  build:
+    runs-on: windows-latest 
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 
+
+    - name: 安装 .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 计算版本号
+      id: version
+      run: |
+        $majorMinor = "1.0" 
+        $date = (Get-Date).ToString("yyyy.MM.dd")
+        $runNumber = $Env:GITHUB_RUN_NUMBER.PadLeft(4, '0')
+        $shortSha = $Env:GITHUB_SHA.Substring(0, 7)
+        $version = "$majorMinor.$date.$runNumber+$shortSha"
+        echo "BUILD_VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Calculated version: $version"
+
+    - name: 还原 NuGet 包
+      run: dotnet restore ${{ env.PROJECT_NAME }}
+
+    - name: 编译解决方案
+      run: dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.CONFIGURATION }} --no-restore -p:Version=${{ steps.version.outputs.BUILD_VERSION }}
+
+    - name: 发布独立应用
+      run: |
+        dotnet publish ${{ env.PROJECT_NAME }} `
+          --configuration ${{ env.CONFIGURATION }} `
+          --runtime ${{ env.RUNTIME }} `
+          --self-contained true `
+          --output ./publish `
+          -p:PublishSingleFile=true ` 
+          -p:Version=${{ steps.version.outputs.BUILD_VERSION }}
+
+    - name: 列出发布目录内容 (调试用)
+      run: dir .\publish\ -Recurse | Select-Object Name, Length | Format-Table -AutoSize
+      if: always() 
+
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: MyWpfApp-${{ env.RUNTIME }}-${{ github.run_number }}
+        path: ./publish/**/*
+        retention-days: 14 
+
+  create-release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') 
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+
+    steps:
+    - name: 下载构建产物
+      uses: actions/download-artifact@v4
+      with:
+        pattern: MyWpfApp-*
+        path: ./artifacts
+
+    - name: 显示文件结构
+      run: find ./artifacts -type f
+
+    - name: 创建 GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./artifacts/**/*.exe
+          ./artifacts/**/*.dll
+          ./artifacts/**/*.config
+        generate_release_notes: true
