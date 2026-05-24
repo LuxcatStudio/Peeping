@@ -88,6 +88,8 @@ namespace ActivityMonitor
         private readonly ObservableCollection<HistoryItem> _historyItems;
         private readonly Timer _refreshTimer;
         private readonly SystemMonitorService _monitorService;
+        private readonly Random _random;
+        private string _lastActiveApp = string.Empty;
         private bool _disposed;
 
         public DashboardWindow()
@@ -97,6 +99,7 @@ namespace ActivityMonitor
             _deviceItems = new ObservableCollection<DeviceStatusItem>();
             _historyItems = new ObservableCollection<HistoryItem>();
             _monitorService = new SystemMonitorService();
+            _random = new Random();
 
             DevicesListView.ItemsSource = _deviceItems;
             HistoryListView.ItemsSource = _historyItems;
@@ -123,20 +126,41 @@ namespace ActivityMonitor
                     UpdateSystemMetrics();
                 });
 
-                var currentDevices = new List<DeviceStatusItem>
+                // 获取当前活动应用
+                var currentApp = _monitorService.GetActiveApplication();
+
+                // 如果应用改变了，记录到历史
+                if (!string.IsNullOrEmpty(currentApp) && currentApp != _lastActiveApp)
                 {
-                    new DeviceStatusItem { DeviceName = "PC", Status = "在线", Software = "桌面监控", LastUpdate = DateTime.Now.ToString("HH:mm:ss") },
-                    new DeviceStatusItem { DeviceName = "手机", Status = "在线", Software = "手机监控", LastUpdate = DateTime.Now.ToString("HH:mm:ss") }
-                };
+                    if (!string.IsNullOrEmpty(_lastActiveApp))
+                    {
+                        AddHistoryItem("应用", $"切换到: {currentApp}");
+                    }
+                    _lastActiveApp = currentApp;
+                }
 
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    _deviceItems.Clear();
-                    foreach (var device in currentDevices)
+                    // 更新或添加PC设备
+                    if (_deviceItems.Count == 0)
                     {
-                        _deviceItems.Add(device);
+                        _deviceItems.Add(new DeviceStatusItem 
+                        { 
+                            DeviceName = "PC", 
+                            Status = "在线", 
+                            Software = currentApp, 
+                            LastUpdate = DateTime.Now.ToString("HH:mm:ss") 
+                        });
                     }
-                    DeviceCountText.Text = $"{_deviceItems.Count} 个设备";
+                    else
+                    {
+                        var pcDevice = _deviceItems[0];
+                        pcDevice.Software = currentApp;
+                        pcDevice.LastUpdate = DateTime.Now.ToString("HH:mm:ss");
+                    }
+                    
+                    if (DeviceCountText != null)
+                        DeviceCountText.Text = $"{_deviceItems.Count} 个设备";
                 });
             }
             catch (Exception ex)
@@ -158,24 +182,30 @@ namespace ActivityMonitor
                 cpuUsage = Math.Max(0, Math.Min(100, cpuUsage));
                 memoryPercent = Math.Max(0, Math.Min(100, memoryPercent));
 
-                CpuUsageText.Text = $"{cpuUsage}%";
-                CpuProgressBar.Value = cpuUsage;
-
-                MemoryUsageText.Text = $"{memoryUsageMB} MB";
-                MemoryProgressBar.Value = memoryPercent;
+                if (CpuUsageText != null)
+                    CpuUsageText.Text = $"{cpuUsage}%";
+                if (CpuProgressBar != null)
+                    CpuProgressBar.Value = cpuUsage;
+                if (MemoryUsageText != null)
+                    MemoryUsageText.Text = $"{memoryUsageMB} MB";
+                if (MemoryProgressBar != null)
+                    MemoryProgressBar.Value = memoryPercent;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"更新系统指标失败: {ex.Message}");
-                var cpuUsage = new Random().Next(5, 80);
-                var memoryUsage = new Random().Next(1000, 8000);
+                var cpuUsage = _random.Next(5, 80);
+                var memoryUsage = _random.Next(1000, 8000);
                 var memoryPercent = (memoryUsage / 16000.0) * 100;
 
-                CpuUsageText.Text = $"{cpuUsage}%";
-                CpuProgressBar.Value = cpuUsage;
-
-                MemoryUsageText.Text = $"{memoryUsage} MB";
-                MemoryProgressBar.Value = memoryPercent;
+                if (CpuUsageText != null)
+                    CpuUsageText.Text = $"{cpuUsage}%";
+                if (CpuProgressBar != null)
+                    CpuProgressBar.Value = cpuUsage;
+                if (MemoryUsageText != null)
+                    MemoryUsageText.Text = $"{memoryUsage} MB";
+                if (MemoryProgressBar != null)
+                    MemoryProgressBar.Value = memoryPercent;
             }
         }
 

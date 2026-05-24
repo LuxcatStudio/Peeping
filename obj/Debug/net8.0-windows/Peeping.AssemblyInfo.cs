@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Peeping")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1d759981f365f458e702b1638053a845496b492d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+748bef9e7033ba165d9ea54c5569677301a09e2b")]
 [assembly: System.Reflection.AssemblyProductAttribute("Peeping")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Peeping")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
