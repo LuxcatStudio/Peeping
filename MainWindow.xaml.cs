@@ -5,22 +5,25 @@ using System.Timers;
 using Hardcodet.Wpf.TaskbarNotification;
 using System.Drawing;
 using Timer = System.Timers.Timer;
-using MessageBox = System.Windows.MessageBox;
 using Application = System.Windows.Application;
 
 namespace ActivityMonitor
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IDisposable
     {
         private readonly SystemMonitorService _monitorService;
         private readonly ApiService _apiService;
+        private readonly SettingsService _settingsService;
         private readonly Timer _monitorTimer;
         private TaskbarIcon? _notifyIcon;
+        private bool _disposed;
+        private bool _isSettingsChanged;
 
         public MainWindow()
         {
             InitializeComponent();
 
+            _settingsService = new SettingsService();
             _monitorService = new SystemMonitorService();
             _apiService = new ApiService();
 
@@ -55,9 +58,9 @@ namespace ActivityMonitor
             showMenuItem.Click += (s, e) => ShowWindow();
             contextMenu.Items.Add(showMenuItem);
 
-            var hideMenuItem = new MenuItem() { Header = "隐藏窗口" };
-            hideMenuItem.Click += (s, e) => HideWindow();
-            contextMenu.Items.Add(hideMenuItem);
+            var settingsMenuItem = new MenuItem() { Header = "设置" };
+            settingsMenuItem.Click += (s, e) => ShowWindow();
+            contextMenu.Items.Add(settingsMenuItem);
 
             contextMenu.Items.Add(new Separator());
 
@@ -74,22 +77,108 @@ namespace ActivityMonitor
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            LoadSettingsToUI();
 
-            Hide();
-
-            bool apiInitialized = await _apiService.InitializeApiUrlAsync();
+            bool apiInitialized = await _apiService.InitializeApiUrlAsync(_settingsService.Settings.ApiUrl);
             if (!apiInitialized)
             {
-                ShowNotification("警告", "无法连接到API服务器，应用将继续运行但数据可能无法发送。");
+                ShowError("无法连接到API服务器，应用将继续运行但数据可能无法发送。");
             }
 
-            SetStartup();
+            if (_settingsService.Settings.AutoStart)
+            {
+                _settingsService.ApplyAutoStart(true);
+            }
 
             _monitorTimer.Start();
 
             await MonitorAndSendAsync();
+        }
 
-            ShowNotification("活动监控器", "应用已启动并在后台运行");
+        private void LoadSettingsToUI()
+        {
+            ApiUrlTextBox.Text = _settingsService.Settings.ApiUrl;
+            AutoStartCheckBox.IsChecked = _settingsService.Settings.AutoStart;
+            HideAllNotifications();
+        }
+
+        private void ShowError(string message)
+        {
+            Dispatcher.Invoke(() => {
+                ErrorText.Text = message;
+                ErrorBorder.Visibility = Visibility.Visible;
+                SuccessBorder.Visibility = Visibility.Collapsed;
+            });
+        }
+
+        private void ShowSuccess(string message)
+        {
+            Dispatcher.Invoke(() => {
+                SuccessText.Text = message;
+                SuccessBorder.Visibility = Visibility.Visible;
+                ErrorBorder.Visibility = Visibility.Collapsed;
+
+                var timer = new Timer(3000);
+                timer.Elapsed += (s, e) => {
+                    Dispatcher.Invoke(() => {
+                        SuccessBorder.Visibility = Visibility.Collapsed;
+                    });
+                    timer.Stop();
+                    timer.Dispose();
+                };
+                timer.AutoReset = false;
+                timer.Start();
+            });
+        }
+
+        private void HideAllNotifications()
+        {
+            Dispatcher.Invoke(() => {
+                ErrorBorder.Visibility = Visibility.Collapsed;
+                SuccessBorder.Visibility = Visibility.Collapsed;
+            });
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            var newApiUrl = ApiUrlTextBox.Text.Trim();
+            var newAutoStart = AutoStartCheckBox.IsChecked == true;
+
+            if (string.IsNullOrEmpty(newApiUrl))
+            {
+                ShowError("API 地址不能为空");
+                return;
+            }
+
+            if (_settingsService.Settings.ApiUrl != newApiUrl)
+            {
+                _settingsService.UpdateApiUrl(newApiUrl);
+                _apiService.UpdateApiUrl(newApiUrl);
+                _isSettingsChanged = true;
+            }
+
+            if (_settingsService.Settings.AutoStart != newAutoStart)
+            {
+                _settingsService.UpdateAutoStart(newAutoStart);
+                _isSettingsChanged = true;
+            }
+
+            if (_isSettingsChanged)
+            {
+                ShowSuccess("设置已保存！");
+            }
+            else
+            {
+                ShowSuccess("无需保存的更改");
+            }
+
+            Hide();
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoadSettingsToUI();
+            Hide();
         }
 
         private void ToggleWindowVisibility()
@@ -106,6 +195,7 @@ namespace ActivityMonitor
 
         private void ShowWindow()
         {
+            LoadSettingsToUI();
             Show();
             WindowState = WindowState.Normal;
             Activate();
@@ -118,10 +208,10 @@ namespace ActivityMonitor
         }
 
         private void OnExitClick(object sender, RoutedEventArgs e)
-        {           
-                _monitorTimer.Stop();
-                _notifyIcon?.Dispose();
-                Application.Current.Shutdown();
+        {
+            _monitorTimer.Stop();
+            _notifyIcon?.Dispose();
+            Application.Current.Shutdown();
         }
 
         private async Task MonitorAndSendAsync()
@@ -150,48 +240,10 @@ namespace ActivityMonitor
             }
         }
 
-        private void SetStartup()
-        {
-            try
-            {
-                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
-                    "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-                if (key != null)
-                {
-                    var appPath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-                    if (!string.IsNullOrEmpty(appPath))
-                    {
-                        key.SetValue("ActivityMonitor", $"\"{appPath}\"");
-                        System.Diagnostics.Debug.WriteLine("开机自启动已设置");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"设置开机自启动失败: {ex.Message}");
-            }
-        }
-
-        private void ShowNotification(string title, string message)
-        {
-            _notifyIcon?.ShowBalloonTip(title, message, BalloonIcon.Info);
-        }
-
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = true;
             Hide();
-        }
-
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
-        {
-            _monitorTimer?.Stop();
-            _monitorTimer?.Dispose();
-            _monitorService?.Dispose();
-            _notifyIcon?.Dispose();
-
-            base.OnClosing(e);
         }
 
         private void Window_StateChanged(object sender, EventArgs e)
@@ -200,6 +252,40 @@ namespace ActivityMonitor
             {
                 Hide();
             }
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            e.Cancel = true;
+            Hide();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _monitorTimer?.Stop();
+                _monitorTimer?.Dispose();
+                _monitorService?.Dispose();
+                _apiService?.Dispose();
+                _notifyIcon?.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        ~MainWindow()
+        {
+            Dispose(false);
         }
     }
 }

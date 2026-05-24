@@ -4,31 +4,37 @@ import json
 import time
 import requests
 import sys
+import os
 
 # ----------------------------------------------------
-# 📌 配置信息
+# 📌 配置加载
 # ----------------------------------------------------
-SERVER_URL = "http://localhost:3000/api/status" 
-DEVICE_ADDRESS = "192.168.124.249:38887" 
-CHECK_INTERVAL_SECONDS = 5 
-AAPT_PATH = "/data/local/tmp/aapt-arm-pie" # ⚠️ 假设 aapt-arm-pie 的路径
+def load_config():
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_config.json")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ 无法加载配置文件: {e}，使用默认配置")
+        return {
+            "server_url": "http://localhost:3000/api/status",
+            "device_address": "192.168.124.249:38887",
+            "check_interval_seconds": 5,
+            "aapt_path": "/data/local/tmp/aapt-arm-pie",
+            "max_errors": 3,
+            "app_label_map": {}
+        }
+
+config = load_config()
+SERVER_URL = config.get("server_url", "http://localhost:3000/api/status")
+DEVICE_ADDRESS = config.get("device_address", "192.168.124.249:38887")
+CHECK_INTERVAL_SECONDS = config.get("check_interval_seconds", 5)
+AAPT_PATH = config.get("aapt_path", "/data/local/tmp/aapt-arm-pie")
+MAX_ERRORS = config.get("max_errors", 3)
+APP_LABEL_MAP = config.get("app_label_map", {})
 
 # 全局状态跟踪
-LAST_REPORTED_LABEL = "initial" 
-MAX_ERRORS = 3 
-
-# ----------------------------------------------------
-# ⚠️ 本地查找表 (App Label Map) - 仅作为高速缓存
-# ----------------------------------------------------
-APP_LABEL_MAP = {
-    "com.tencent.mm": "微信",
-    "com.tencent.mobileqq": "QQ",
-    "com.ss.android.ugc.aweme": "抖音",
-    "tv.danmaku.bili": "哔哩哔哩", # B站已存在，但可以删除，让AAPT去发现
-    "com.android.launcher3": "桌面启动器",
-    "com.miui.home": "小米桌面",
-    # [请删除或只保留您常用应用的标签，让AAPT去发现新的应用]
-}
+LAST_REPORTED_LABEL = "initial"
 
 # ----------------------------------------------------
 # ✅ 核心函数
@@ -154,8 +160,8 @@ def get_app_label(package_name):
     # 2. AAPT 动态获取 (较慢)
     aapt_label = get_app_label_from_adb_aapt(package_name)
     if aapt_label:
-        # ⚠️ 可选：如果AAPT成功，动态加入MAP中，加速下次查找
-        # APP_LABEL_MAP[package_name] = aapt_label 
+        # 动态加入MAP中，加速下次查找
+        APP_LABEL_MAP[package_name] = aapt_label 
         return aapt_label.strip()
 
     # 3. 最终返回包名 (最低优先级)
@@ -176,7 +182,7 @@ def upload_status(package_label, is_disconnect=False):
 
     payload = {
         "devices": {
-            "Phone": {
+            "phone": {
                 "status": phone_status,
                 "software": software_name 
             }

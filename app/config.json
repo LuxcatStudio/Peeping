@@ -1,11 +1,11 @@
 {
     "device_visibility": {
         "pc": true,
-        "Phone": true
+        "phone": true
     },
     "heartbeat_check": {
         "pc_enabled": true,
-        "Phone_enabled": false 
+        "phone_enabled": false 
     },
     "timeout_ms": 120000 
 }

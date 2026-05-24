@@ -16,7 +16,7 @@ namespace ActivityMonitor.Models
 
     public class Devices
     {
-        [JsonPropertyName("PC")]
+        [JsonPropertyName("pc")]
         public PCDevice Pc { get; set; } = new();
     }
 

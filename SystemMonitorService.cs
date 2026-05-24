@@ -5,9 +5,10 @@ using System.Text.RegularExpressions;
 
 namespace ActivityMonitor.Services
 {
-    public class SystemMonitorService
+    public class SystemMonitorService : IDisposable
     {
         private readonly PerformanceCounter _cpuCounter;
+        private bool _disposed;
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
@@ -33,15 +34,16 @@ namespace ActivityMonitor.Services
                 if (processId == 0)
                     return "未知应用";
 
-                Process process = Process.GetProcessById((int)processId);
+                using var process = Process.GetProcessById((int)processId);
                 string appName = string.IsNullOrEmpty(process.MainWindowTitle)
                     ? process.ProcessName
                     : $"{process.ProcessName} - {process.MainWindowTitle}";
                 
                 return ExtractMainProcess(appName);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"获取活动应用失败: {ex.Message}");
                 return "未知应用";
             }
         }
@@ -65,8 +67,9 @@ namespace ActivityMonitor.Services
             {
                 return Math.Round(_cpuCounter.NextValue(), 2);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"获取CPU使用率失败: {ex.Message}");
                 return 0.0;
             }
         }
@@ -89,7 +92,26 @@ namespace ActivityMonitor.Services
 
         public void Dispose()
         {
-            _cpuCounter?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _cpuCounter?.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        ~SystemMonitorService()
+        {
+            Dispose(false);
         }
     }
 }

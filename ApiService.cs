@@ -1,44 +1,43 @@
 ﻿using ActivityMonitor.Models;
-using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Xml;
-using System.Xml.Linq;
 
 namespace ActivityMonitor.Services
 {
-    public class ApiService
+    public class ApiService : IDisposable
     {
         private readonly HttpClient _httpClient;
+        private bool _disposed;
         private string? _apiUrl = string.Empty;
+        private readonly object _lockObj = new();
 
         public ApiService()
         {
-            _httpClient = new HttpClient();
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = true
+            };
+            _httpClient = new HttpClient(handler);
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
-
-        public async Task<bool> InitializeApiUrlAsync()
+        public async Task<bool> InitializeApiUrlAsync(string apiUrl)
         {
             try
             {
-                _apiUrl = GetApiUrlFromConfig();
-
-                if (string.IsNullOrEmpty(_apiUrl))
+                if (string.IsNullOrEmpty(apiUrl))
                 {
-                    System.Diagnostics.Debug.WriteLine("未能从配置文件获取到API URL");
+                    System.Diagnostics.Debug.WriteLine("API URL为空");
                     return false;
                 }
 
-                var handler = new HttpClientHandler()
+                lock (_lockObj)
                 {
-                    AllowAutoRedirect = true
-                };
-                var httpClient = new HttpClient(handler);
+                    _apiUrl = apiUrl;
+                }
 
-                var testResponse = await _httpClient.GetAsync(_apiUrl);
+                var testResponse = await _httpClient.GetAsync(apiUrl);
 
                 return testResponse.IsSuccessStatusCode;
             }
@@ -49,26 +48,24 @@ namespace ActivityMonitor.Services
             }
         }
 
-        private string? GetApiUrlFromConfig()
+        public void UpdateApiUrl(string apiUrl)
         {
-            try
+            lock (_lockObj)
             {
-                if (!File.Exists("config.xml")) return null;
-
-                var doc = XDocument.Load("config.xml");
-                return doc.Descendants("add")
-                         .FirstOrDefault(x => x.Attribute("key")?.Value == "ApiUrl")
-                         ?.Attribute("value")?.Value;
+                _apiUrl = apiUrl;
             }
-            catch
-            {
-                return null;
-            }
+            System.Diagnostics.Debug.WriteLine($"API URL已更新为: {apiUrl}");
         }
 
         public async Task<bool> SendDeviceStatusAsync(DeviceStatusRequest status)
         {
-            if (string.IsNullOrEmpty(_apiUrl))
+            string? currentUrl;
+            lock (_lockObj)
+            {
+                currentUrl = _apiUrl;
+            }
+
+            if (string.IsNullOrEmpty(currentUrl))
             {
                 System.Diagnostics.Debug.WriteLine("API URL未初始化");
                 return false;
@@ -83,7 +80,7 @@ namespace ActivityMonitor.Services
                 });
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync(_apiUrl, content);
+                var response = await _httpClient.PostAsync(currentUrl, content);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -101,6 +98,30 @@ namespace ActivityMonitor.Services
                 System.Diagnostics.Debug.WriteLine($"发送状态失败: {ex.Message}");
                 return false;
             }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _httpClient?.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        ~ApiService()
+        {
+            Dispose(false);
         }
     }
 }

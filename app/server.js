@@ -10,6 +10,7 @@ const port = 3000;
 // ⚠️ Redis 配置与连接
 // ----------------------------------------------------
 const redisClient = redis.createClient();
+let server;
 
 redisClient.on('error', (err) => {
     console.error('Redis Client Error:', err);
@@ -31,16 +32,23 @@ const TIMEOUT_MS = config.timeout_ms;
 // ----------------------------------------------------
 app.use(bodyParser.json());
 
+// 全局错误处理中间件
+app.use((err, req, res, next) => {
+    console.error('❌ Server error:', err.stack);
+    res.status(500).json({ error: "Internal Server Error" });
+});
+
 // ----------------------------------------------------
 // 📌 接口 1: POST /api/status (存储)
 // ----------------------------------------------------
-app.post('/api/status', async (req, res) => {
-    const newStatus = req.body;
-    if (Object.keys(newStatus).length === 0) {
-        return res.status(400).json({ error: "Request body cannot be empty" });
-    }
-    newStatus.receivedAt = new Date().toISOString();
+app.post('/api/status', async (req, res, next) => {
     try {
+        const newStatus = req.body;
+        if (!newStatus || Object.keys(newStatus).length === 0) {
+            return res.status(400).json({ error: "Request body cannot be empty" });
+        }
+        newStatus.receivedAt = new Date().toISOString();
+        
         await redisClient.set(LATEST_STATUS_KEY, JSON.stringify(newStatus));
         console.log(`[POST] New status updated at: ${newStatus.receivedAt}`);
         res.status(200).json({
@@ -48,8 +56,8 @@ app.post('/api/status', async (req, res) => {
             data: newStatus
         });
     } catch (error) {
-        console.error("Error storing data:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("❌ Error storing data:", error);
+        next(error);
     }
 });
 
@@ -57,7 +65,7 @@ app.post('/api/status', async (req, res) => {
 /**
  * 接口 2: GET /api/status (读取、过滤与心跳检查)
  */
-app.get('/api/status', async (req, res) => {
+app.get('/api/status', async (req, res, next) => {
     try {
         const statusString = await redisClient.get(LATEST_STATUS_KEY);
         if (!statusString) {
@@ -71,7 +79,7 @@ app.get('/api/status', async (req, res) => {
         // --- 1. 设备可见性过滤与心跳检查 ---
         for (const [deviceName, deviceData] of Object.entries(latestStatus.devices || {})) {
             
-            // 检查配置文件中是否允许显示该设备 (e.g., config.device_visibility["Phone"])
+            // 检查配置文件中是否允许显示该设备 (e.g., config.device_visibility["phone"])
             if (config.device_visibility[deviceName] === true) {
                 
                 let deviceConnectionStatus = "online";
@@ -103,16 +111,45 @@ app.get('/api/status', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error retrieving or parsing data:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("❌ Error retrieving or parsing data:", error);
+        next(error);
     }
 });
 
+// ----------------------------------------------------
+// 优雅关闭函数
+// ----------------------------------------------------
+const gracefulShutdown = async (signal) => {
+    console.log(`\n📥 Received ${signal}, starting graceful shutdown...`);
+    
+    try {
+        if (server) {
+            server.close(() => {
+                console.log('✅ Express server closed');
+            });
+        }
+        
+        if (redisClient.isOpen) {
+            await redisClient.quit();
+            console.log('✅ Redis client disconnected');
+        }
+        
+        console.log('👋 Server shutdown complete');
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
+    }
+};
+
+// 监听终止信号
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // ----------------------------------------------------
 // 启动服务器
 // ----------------------------------------------------
-app.listen(port, () => {
+server = app.listen(port, () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
     console.log(`Timeout for enabled devices is: ${TIMEOUT_MS / 1000} seconds.`);
 });
