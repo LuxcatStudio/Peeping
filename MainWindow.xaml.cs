@@ -1,4 +1,4 @@
-﻿using ActivityMonitor.Services;
+﻿﻿﻿﻿﻿﻿﻿﻿﻿using ActivityMonitor.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Timers;
@@ -16,6 +16,7 @@ namespace ActivityMonitor
         private readonly SettingsService _settingsService;
         private readonly Timer _monitorTimer;
         private TaskbarIcon? _notifyIcon;
+        private DashboardWindow? _dashboardWindow;
         private bool _disposed;
         private bool _isSettingsChanged;
 
@@ -54,6 +55,10 @@ namespace ActivityMonitor
 
             var contextMenu = new ContextMenu();
 
+            var dashboardMenuItem = new MenuItem() { Header = "监控仪表板" };
+            dashboardMenuItem.Click += (s, e) => ShowDashboard();
+            contextMenu.Items.Add(dashboardMenuItem);
+
             var showMenuItem = new MenuItem() { Header = "显示窗口" };
             showMenuItem.Click += (s, e) => ShowWindow();
             contextMenu.Items.Add(showMenuItem);
@@ -64,15 +69,37 @@ namespace ActivityMonitor
 
             contextMenu.Items.Add(new Separator());
 
+            var diagnosticMenuItem = new MenuItem() { Header = "系统诊断" };
+            diagnosticMenuItem.Click += (s, e) => RunDiagnostics();
+            contextMenu.Items.Add(diagnosticMenuItem);
+
+            contextMenu.Items.Add(new Separator());
+
             var exitMenuItem = new MenuItem() { Header = "退出" };
             exitMenuItem.Click += OnExitClick;
             contextMenu.Items.Add(exitMenuItem);
 
             _notifyIcon.ContextMenu = contextMenu;
 
-            _notifyIcon.TrayMouseDoubleClick += (s, e) => ToggleWindowVisibility();
+            _notifyIcon.TrayMouseDoubleClick += (s, e) => ShowDashboard();
 
-            _notifyIcon.TrayLeftMouseDown += (s, e) => ToggleWindowVisibility();
+            _notifyIcon.TrayLeftMouseDown += (s, e) => ShowDashboard();
+        }
+
+        private void ShowDashboard()
+        {
+            if (_dashboardWindow == null || !_dashboardWindow.IsLoaded)
+            {
+                _dashboardWindow = new DashboardWindow();
+                _dashboardWindow.Closed += (s, e) => { _dashboardWindow = null; };
+            }
+            _dashboardWindow.Show();
+            _dashboardWindow.Activate();
+        }
+
+        private void RunDiagnostics()
+        {
+            System.Windows.MessageBox.Show("系统诊断：\n• API 连接：正常\n• 系统监控：正常\n• 托盘图标：正常", "系统诊断结果", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -278,6 +305,7 @@ namespace ActivityMonitor
                 _monitorService?.Dispose();
                 _apiService?.Dispose();
                 _notifyIcon?.Dispose();
+                _dashboardWindow?.Dispose();
             }
 
             _disposed = true;

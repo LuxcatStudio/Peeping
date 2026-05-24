@@ -1,0 +1,125 @@
+<Window x:Class="ActivityMonitor.DashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="实时监控仪表板" Height="700" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <Ellipse Width="45" Height="45" Fill="#0078D4" Margin="0,0,15,0"/>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="实时监控仪表板" FontSize="26" FontWeight="Bold" Foreground="#333333"/>
+                <TextBlock x:Name="LastUpdateText" Text="最后更新: --:--:--" FontSize="12" Foreground="#888888" Margin="0,3,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,10,0">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.1" Direction="270"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="CPU 使用率" FontSize="14" Foreground="#888888"/>
+                            <TextBlock x:Name="CpuUsageText" Text="0%" FontSize="32" FontWeight="Bold" Foreground="#0078D4" Margin="0,5,0,0"/>
+                            <ProgressBar x:Name="CpuProgressBar" Height="8" Value="0" Maximum="100" Background="#F0F0F0" Foreground="#0078D4" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="5,0,5,0">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.1" Direction="270"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="内存使用" FontSize="14" Foreground="#888888"/>
+                            <TextBlock x:Name="MemoryUsageText" Text="0 MB" FontSize="32" FontWeight="Bold" Foreground="#107C10" Margin="0,5,0,0"/>
+                            <ProgressBar x:Name="MemoryProgressBar" Height="8" Value="0" Maximum="100" Background="#F0F0F0" Foreground="#107C10" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="10,0,0,0">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.1" Direction="270"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="系统状态" FontSize="14" Foreground="#888888"/>
+                            <TextBlock x:Name="SystemStatusText" Text="在线" FontSize="32" FontWeight="Bold" Foreground="#107C10" Margin="0,5,0,0"/>
+                            <TextBlock x:Name="DeviceCountText" Text="0 个设备" FontSize="12" Foreground="#888888" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,20">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.1" Direction="270"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="设备状态" Style="{StaticResource SectionTitleStyle}"/>
+                        <ListView x:Name="DevicesListView" Margin="0,15,0,0" BorderThickness="0">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="设备名称" Width="150" DisplayMemberBinding="{Binding DeviceName}"/>
+                                    <GridViewColumn Header="状态" Width="100" DisplayMemberBinding="{Binding Status}"/>
+                                    <GridViewColumn Header="软件" Width="200" DisplayMemberBinding="{Binding Software}"/>
+                                    <GridViewColumn Header="最后更新" Width="150" DisplayMemberBinding="{Binding LastUpdate}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.1" Direction="270"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                            <TextBlock Text="历史记录" Style="{StaticResource SectionTitleStyle}" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="ExportJsonButton" Content="导出 JSON" Margin="0,0,10,0" Click="ExportJsonButton_Click"/>
+                                <Button x:Name="ExportCsvButton" Content="导出 CSV" Click="ExportCsvButton_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <ListView x:Name="HistoryListView" Height="200" BorderThickness="0">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="时间" Width="150" DisplayMemberBinding="{Binding Time}"/>
+                                    <GridViewColumn Header="设备" Width="100" DisplayMemberBinding="{Binding Device}"/>
+                                    <GridViewColumn Header="事件" Width="200" DisplayMemberBinding="{Binding Event}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
