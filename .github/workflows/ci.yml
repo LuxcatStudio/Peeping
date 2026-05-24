@@ -1,0 +1,36 @@
+name: CI - Build and Publish
+
+on:
+  push:
+    branches: [ main ]
+    tags: ['v*.*.*']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore
+      run: dotnet restore Peeping.csproj
+
+    - name: Build
+      run: dotnet build Peeping.csproj -c Release --no-restore
+
+    - name: Publish
+      run: |
+        dotnet publish Peeping.csproj -c Release -r win-x64 --self-contained false -p:PublishTrimmed=false -o ./artifacts/publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: peeping-windows-x64
+        path: artifacts/publish
