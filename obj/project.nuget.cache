@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/annT/InNHc=",
+  "dgSpecHash": "HUyLzD0xMfk=",
   "success": true,
-  "projectFilePath": "c:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
+  "projectFilePath": "C:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Administrator\\.nuget\\packages\\hardcodet.notifyicon.wpf\\1.0.5\\hardcodet.notifyicon.wpf.1.0.5.nupkg.sha512",
     "C:\\Users\\Administrator\\.nuget\\packages\\hardcodet.wpf.taskbarnotification\\1.0.5\\hardcodet.wpf.taskbarnotification.1.0.5.nupkg.sha512",
@@ -18,9 +18,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "已使用“.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1”而不是项目目标框架“net8.0-windows7.0”还原包“Hardcodet.NotifyIcon.Wpf 1.0.5”。此包可能与项目不完全兼容。",
-      "projectPath": "c:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
+      "projectPath": "C:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
       "warningLevel": 1,
-      "filePath": "c:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
+      "filePath": "C:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
       "libraryId": "Hardcodet.NotifyIcon.Wpf",
       "targetGraphs": [
         "net8.0-windows"

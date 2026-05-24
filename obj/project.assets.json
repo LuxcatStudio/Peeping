@@ -424,11 +424,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
+      "projectUniqueName": "C:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
       "projectName": "Peeping",
-      "projectPath": "c:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
+      "projectPath": "C:\\Users\\Administrator\\Desktop\\Peeping\\Peeping.csproj",
       "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\Administrator\\Desktop\\Peeping\\obj\\",
+      "outputPath": "C:\\Users\\Administrator\\Desktop\\Peeping\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"

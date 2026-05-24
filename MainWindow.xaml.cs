@@ -69,12 +69,6 @@ namespace ActivityMonitor
 
             contextMenu.Items.Add(new Separator());
 
-            var diagnosticMenuItem = new MenuItem() { Header = "系统诊断" };
-            diagnosticMenuItem.Click += (s, e) => RunDiagnostics();
-            contextMenu.Items.Add(diagnosticMenuItem);
-
-            contextMenu.Items.Add(new Separator());
-
             var exitMenuItem = new MenuItem() { Header = "退出" };
             exitMenuItem.Click += OnExitClick;
             contextMenu.Items.Add(exitMenuItem);
@@ -97,10 +91,7 @@ namespace ActivityMonitor
             _dashboardWindow.Activate();
         }
 
-        private void RunDiagnostics()
-        {
-            System.Windows.MessageBox.Show("系统诊断：\n• API 连接：正常\n• 系统监控：正常\n• 托盘图标：正常", "系统诊断结果", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
+
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {

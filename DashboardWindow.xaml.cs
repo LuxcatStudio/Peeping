@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
 using System.Timers;
@@ -11,19 +13,73 @@ using ActivityMonitor.Services;
 
 namespace ActivityMonitor
 {
-    public class DeviceStatusItem
+    public class DeviceStatusItem : INotifyPropertyChanged
     {
-        public string DeviceName { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string Software { get; set; } = string.Empty;
-        public string LastUpdate { get; set; } = string.Empty;
+        private string _deviceName = string.Empty;
+        private string _status = string.Empty;
+        private string _software = string.Empty;
+        private string _lastUpdate = string.Empty;
+
+        public string DeviceName
+        {
+            get => _deviceName;
+            set { _deviceName = value; OnPropertyChanged(); }
+        }
+
+        public string Status
+        {
+            get => _status;
+            set { _status = value; OnPropertyChanged(); }
+        }
+
+        public string Software
+        {
+            get => _software;
+            set { _software = value; OnPropertyChanged(); }
+        }
+
+        public string LastUpdate
+        {
+            get => _lastUpdate;
+            set { _lastUpdate = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 
-    public class HistoryItem
+    public class HistoryItem : INotifyPropertyChanged
     {
-        public string Time { get; set; } = string.Empty;
-        public string Device { get; set; } = string.Empty;
-        public string Event { get; set; } = string.Empty;
+        private string _time = string.Empty;
+        private string _device = string.Empty;
+        private string _event = string.Empty;
+
+        public string Time
+        {
+            get => _time;
+            set { _time = value; OnPropertyChanged(); }
+        }
+
+        public string Device
+        {
+            get => _device;
+            set { _device = value; OnPropertyChanged(); }
+        }
+
+        public string Event
+        {
+            get => _event;
+            set { _event = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 
     public partial class DashboardWindow : Window, IDisposable
@@ -32,7 +88,6 @@ namespace ActivityMonitor
         private readonly ObservableCollection<HistoryItem> _historyItems;
         private readonly Timer _refreshTimer;
         private readonly SystemMonitorService _monitorService;
-        private readonly DateTime _startTime;
         private bool _disposed;
 
         public DashboardWindow()
@@ -42,7 +97,6 @@ namespace ActivityMonitor
             _deviceItems = new ObservableCollection<DeviceStatusItem>();
             _historyItems = new ObservableCollection<HistoryItem>();
             _monitorService = new SystemMonitorService();
-            _startTime = DateTime.Now;
 
             DevicesListView.ItemsSource = _deviceItems;
             HistoryListView.ItemsSource = _historyItems;
@@ -59,11 +113,11 @@ namespace ActivityMonitor
             _refreshTimer.Start();
         }
 
-        private async Task RefreshDataAsync()
+        private async System.Threading.Tasks.Task RefreshDataAsync()
         {
             try
             {
-                Dispatcher.Invoke(() =>
+                await Dispatcher.InvokeAsync(() =>
                 {
                     LastUpdateText.Text = $"最后更新: {DateTime.Now:HH:mm:ss}";
                     UpdateSystemMetrics();
@@ -75,7 +129,7 @@ namespace ActivityMonitor
                     new DeviceStatusItem { DeviceName = "手机", Status = "在线", Software = "手机监控", LastUpdate = DateTime.Now.ToString("HH:mm:ss") }
                 };
 
-                Dispatcher.Invoke(() =>
+                await Dispatcher.InvokeAsync(() =>
                 {
                     _deviceItems.Clear();
                     foreach (var device in currentDevices)
@@ -95,16 +149,12 @@ namespace ActivityMonitor
         {
             try
             {
-                // 获取真实的CPU使用率
                 var cpuUsage = (int)Math.Round(_monitorService.GetCpuUsage(), 0);
-                
-                // 获取内存使用情况
                 var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
                 var memoryUsageMB = currentProcess.WorkingSet64 / (1024 * 1024);
-                var totalMemoryGB = 16; // 假设16GB
+                var totalMemoryGB = 16;
                 var memoryPercent = (memoryUsageMB / (double)(totalMemoryGB * 1024)) * 100;
 
-                // 确保值在合理范围内
                 cpuUsage = Math.Max(0, Math.Min(100, cpuUsage));
                 memoryPercent = Math.Max(0, Math.Min(100, memoryPercent));
 
@@ -117,7 +167,6 @@ namespace ActivityMonitor
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"更新系统指标失败: {ex.Message}");
-                // 如果获取失败，使用随机值作为后备
                 var cpuUsage = new Random().Next(5, 80);
                 var memoryUsage = new Random().Next(1000, 8000);
                 var memoryPercent = (memoryUsage / 16000.0) * 100;
@@ -132,22 +181,34 @@ namespace ActivityMonitor
 
         private void AddHistoryItem(string device, string eventMsg)
         {
-            Dispatcher.Invoke(() =>
+            try
             {
+                if (!Dispatcher.CheckAccess())
+                {
+                    Dispatcher.Invoke(() => AddHistoryItem(device, eventMsg));
+                    return;
+                }
+
                 var newItem = new HistoryItem
                 {
                     Time = DateTime.Now.ToString("HH:mm:ss"),
                     Device = device,
                     Event = eventMsg
                 };
-                
+
                 _historyItems.Insert(0, newItem);
 
                 if (_historyItems.Count > 100)
                 {
                     _historyItems.RemoveAt(_historyItems.Count - 1);
                 }
-            });
+
+                System.Diagnostics.Debug.WriteLine($"历史记录已添加: {device} - {eventMsg}, 总数: {_historyItems.Count}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"添加历史记录失败: {ex.Message}");
+            }
         }
 
         private void ExportJsonButton_Click(object sender, RoutedEventArgs e)
